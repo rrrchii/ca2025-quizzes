@@ -99,42 +99,38 @@ return_passed:
 clz:
     beq   a0, x0, zero      # if (x == 0) return 32
 
-    li    t0, 0               # n = 0
-    # if ((x >> 16) == 0) { n += 16; x <<= 16; }
+    li    t0, 0             # n = 0
+    
     srli  t1, a0, 16
     bne   t1, x0, chk8
     addi  t0, t0, 16
-    slli  a0, a0, 16
+    slli  a0, a0, 16        # if ((x >> 16) == 0) { n += 16; x <<= 16; }
 
 chk8:
-    # if ((x >> 24) == 0) { n += 8; x <<= 8; }
     srli  t1, a0, 24
     bne   t1, x0, chk4
     addi  t0, t0, 8
-    slli  a0, a0, 8
+    slli  a0, a0, 8          # if ((x >> 24) == 0) { n += 8; x <<= 8; }
 
 chk4:
-    # if ((x >> 28) == 0) { n += 4; x <<= 4; }
     srli  t1, a0, 28
     bne   t1, x0, chk2
     addi  t0, t0, 4
-    slli  a0, a0, 4
+    slli  a0, a0, 4          # if ((x >> 28) == 0) { n += 4; x <<= 4; }
 
 chk2:
-    # if ((x >> 30) == 0) { n += 2; x <<= 2; }
     srli  t1, a0, 30
     bne   t1, x0, chk1
     addi  t0, t0, 2
-    slli  a0, a0, 2
+    slli  a0, a0, 2           # if ((x >> 30) == 0) { n += 2; x <<= 2; }
 
 chk1:
-    # if ((x >> 31) == 0) { n += 1; }
     srli  t1, a0, 31
     bne   t1, x0, ret
-    addi  t0, t0, 1
+    addi  t0, t0, 1           # if ((x >> 31) == 0) { n += 1; }
 
 ret:
-    mv    a0, t0             # return n
+    mv    a0, t0               # return n
     ret
 
 zero:
