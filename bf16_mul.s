@@ -1,14 +1,14 @@
-        .data
+.data
 msg_pass:
     .asciz "tests pass\n"
 msg_fail:
     .asciz "some tests fail\n"
     
-    
-        .text
-        .globl main
+.text
+.globl main
+
 main:
-     li      s10, 0                 # fail_count = 0
+    li      s10, 0                 # fail_count = 0
 
     # ------------- case1 ---------------
     # TC1: 1.5 * 0.5 = 0.75
@@ -71,7 +71,7 @@ exit:
     li      a7, 10                # exit
     ecall
 
-
+    
 bf16_mul:
     srli    t0, a0, 15            
     andi    t0, t0, 1             # t0 = sign_a (0/1)
@@ -89,83 +89,84 @@ bf16_mul:
     
     xor     s0, t0, t1            # s0 = result_sign
     
-    li      a4, 0xFF
-    bne     t2, a4, 1f            # exp_a != 0xFF ?
-    bnez    t4, nan               # mant_a != 0 => NaN
+    li      t6, 0xFF
+    bne     t2, t6, check_b_FF    # exp_a != 0xFF ?
+    bnez    t4, nan               # exp_a == FF mant_a != 0 => NaN
     
-1:
-    bne     t3, a4, 2f            # exp_b != 0xFF ?
-    bnez    t5, nan               # mant_b != 0 => NaN
+check_b_FF:
+    bne     t3, t6, both_not_nan   # exp_b != 0xFF ?
+    bnez    t5, nan               # exp_b == FF mant_b != 0 => NaN
     
-2:
-    beq     t2, a4, 3f
-    j       4f
+both_not_nan:
+    beq     t2, t6, a_is_inf
+    j       check_b_inf
 
-3:  beqz    t3, 5f
-    j       4f
+a_is_inf:  
+    beqz    t3, b_is_zero
+    j       check_b_inf
     
-5:   
+b_is_zero:   
     beqz    t5, nan                # a = Inf b = 0 return nan
-4:
-    bne     t3, a4, 6f             
-    beqz    t2, 7f
-    j       6f
-7:
+check_b_inf:
+    bne     t3, t6, check_inf            
+    beqz    t2, b_is_inf
+    j       check_inf
+b_is_inf:
     beqz    t4, nan                # b = Inf a = 0 return nan
-6:
-    beq     t2, a4, inf
-    beq     t3, a4, inf
+check_inf:
+    beq     t2, t6, inf            # b != Inf a == Inf ret Inf
+    beq     t3, t6, inf            # a != Inf b == Inf ret Inf
     
-    beqz    t2, 8f
-    j       9f
+    beqz    t2, check_mant_a_zero
+    j       check_exp_b_zero
     
-8:  
+check_mant_a_zero:  
     beqz    t4, zero
     
-9:
-    beqz    t3, 10f
-    j       11f
+check_exp_b_zero:
+    beqz    t3, check_mant_b_zero
+    j       exp_adjust
     
-10:
+check_mant_b_zero:
     beqz    t5, zero
 
-11:
+exp_adjust:
     li      a2, 0
     
-    beqz    t2, 12f
+    beqz    t2, while_a
     li      s7, 0x80
     or      t4, t4, s7
-    j       13f
-12:                               # while (!(mant_a & 0x80)) { mant_a <<=1; exp_adjust--; }
-    andi    a4, t4, 0x80          # (mant_a & 0x80)
+    j       adjust_b
+while_a:                               # while (!(mant_a & 0x80)) { mant_a <<=1; exp_adjust--; }
+    andi    a4, t4, 0x80               # (mant_a & 0x80)
     bnez    a4, done_adjust_a
     slli    t4, t4, 1
     addi    a2, a2, -1
-    j       12b
+    j       while_a
     
 done_adjust_a:
     li      t2, 1
     
-13:
-    beqz    t3, 14f
+adjust_b:
+    beqz    t3, while_b
     ori     t5, t5, 0x80
-    j       15f
+    j       adjust_done
     
-14:
+while_b:
     andi    a4, t5, 0x80
     bnez    a4, done_adjust_b
     slli    t5, t5, 1
     addi    a2, a2, -1
-    j       14b
+    j       while_b
     
 done_adjust_b:
     li      t3, 1
 
-15:
+adjust_done:
     li      a3, 0
-    li      a4, 8
+    li      a4, 8                       # counter
     
-mul_loop:
+mul_loop:                               # mant_a * mant_b
     andi    a5, t5, 1
     beqz    a5, skip_add
     add     a3, a3, t4
@@ -199,12 +200,12 @@ scaled:
     
     blez    a4, underflow
     
-    slli    t0, t6, 15            # sign
+    slli    t0, s0, 15            # sign
     andi    t1, a4, 0xFF
     slli    t1, t1, 7             # exp<<7
     or      t0, t0, t1
     or      t0, t0, a3            # + mant
-    andi    a0, t0, 0xFF
+    mv      a0, t0
     ret
 inf:
     slli    a0, s0, 15
@@ -213,7 +214,7 @@ inf:
     ret
 
 zero:
-    slli    a0, s0, 15            # ��0
+    slli    a0, s0, 15            # 0
     ret
 
 nan:
