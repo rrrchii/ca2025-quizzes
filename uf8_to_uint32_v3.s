@@ -3,7 +3,7 @@
  text2:      .asciz " but encodes back to "
  text3:      .asciz ": value "
  text4:      .asciz " <= previous_value "
- text5:      .asciz "tests pass"
+ text5:      .asciz "tests pass."
  text6:      .asciz "some tests failed."
 
  newline:    .asciz "\n"
@@ -15,7 +15,7 @@ main:
     beq a0, x0, fail       # a0 is passed flag if (passed == 0) means check fail
     la    a0, text5
     li    a7, 4
-    ecall                  # print "All tests passed."
+    ecall                  # print "tests pass."
     la    a0, newline
     li    a7, 4 
     ecall                  # print "\n"
@@ -92,7 +92,7 @@ check_done:
 fail:
     la    a0, text6
     li    a7, 4
-    ecall                  # print "Some tests failed."
+    ecall                  # print "some tests failed."
     la    a0, newline
     li    a7, 4
     ecall                  # print "\n"
