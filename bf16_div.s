@@ -6,7 +6,7 @@ msg_fail:
 
 
 .text
-.globl bf16_div
+.globl main
 main:
     li      s10, 0                 # fail_count = 0
 
