@@ -1,16 +1,16 @@
-        .data
+.data
 msg_pass:
     .asciz "tests pass\n"
 msg_fail:
     .asciz "some tests fail\n"
+
     
-    
-        .text
-        .globl main
+.text
+.globl main
 main:
     li      s10, 0                 # fail_count = 0
 
-    # ------------- case1 ---------------
+    # ------------- case1(add) ---------------
     # TC1: 0x0000 + 0x3FC0 (0 + 1.5) = 0x3FC0 (1.5)
     # ----------------------------
     li      a0, 0x0000            # a = +0
@@ -23,7 +23,7 @@ main:
     addi    s10, s10, 1
 2:
 
-    # ------------ case2 ----------------
+    # ------------- case2(add) ---------------
     # TC2 (edge): +Inf + (-Inf) = NaN
     # a = 0x7F80 (+Inf), b = 0xFF80 (-Inf)
     # ----------------------------
@@ -40,7 +40,7 @@ main:
     addi    s10, s10, 1
 4:
 
-    # ----------- case3 -----------------
+    # ------------- case3(add) ---------------
     # TC3: 0x3FC0 + 0x3F00 (1.5 + 0.5) = 0x4000 (2.0)
     # ----------------------------
     li      a0, 0x3FC0            # 1.5 (bf16)
@@ -53,7 +53,7 @@ main:
     addi    s10, s10, 1
 6:
 
-    # ------------- case4 ---------------
+    # ------------- case4(sub) ---------------
     # TC4:0x0000 - 0x3FC0 (0 - 1.5) = 0xBFC0 (-1.5)
     # ----------------------------
     li      a0, 0x0000            # a = +0
@@ -66,22 +66,22 @@ main:
     addi    s10, s10, 1
 8:
 
-    # ------------ case5 ----------------
-    # TC5�G+Inf - (-Inf) = +Inf
+    # ------------- case5(sub) ---------------
+    # TC5:+Inf - (-Inf) = +Inf
     # a = 0x7F80 (+Inf), b = 0xFF80 (-Inf)
     # ----------------------------
     li      a0, 0x7F80            # +Inf
     li      a1, 0xFF80            # -Inf
     jal     ra, bf16_sub
-    li      t0, 0x7F80            # ���� +Inf
+    li      t0, 0x7F80            # +Inf
     bne     a0, t0, 9f
     j       10f
 9:
     addi    s10, s10, 1
 10:
 
-    # ----------- case6 -----------------
-    # TC6�G0x3FC0 - 0x3F00 (1.5 - 0.5) = 0x3F80 (1.0)
+    # ------------- case6(sub) ---------------
+    # TC6:0x3FC0 - 0x3F00 (1.5 - 0.5) = 0x3F80 (1.0)
     # ----------------------------
     li      a0, 0x3FC0            # 1.5 (bf16)
     li      a1, 0x3F00            # 0.5 (bf16)
@@ -97,7 +97,7 @@ main:
     # ----------------------------
     # print result
     # ----------------------------
-    beqz    s10, print_pass       # fail_count == 0 �� pass
+    beqz    s10, print_pass       # if (fail_count == 0) >> pass
     la      a0, msg_fail
     li      a7, 4                 # print_string
     ecall
@@ -249,15 +249,15 @@ ret_a:
     mv      a0, a0
     ret
 nan:
-    li      a0, 0x7FC0           # NaN
+    li      a0, 0x7FC0           
     ret
     
 ret_zero:
-    mv      a0, x0               # zero
+    mv      a0, x0               
     ret
     
     
 bf16_sub:
     li      t0, 0x8000
-    xor     a1, a1, t0             # reverse b_sign
+    xor     a1, a1, t0             # reverse b
     j       bf16_add               
