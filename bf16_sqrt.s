@@ -77,22 +77,15 @@ implict_1:
     ori     t2, t2, 0x80    # m 取代 mant
       
 start_square_root:
-    li      t5, 1
-    and     t6, t1, t5
-    beq     t6, x0, else
-    slli    t2, t2, 1
-    addi    t4, t1, -1
-    srli    t4, t4, 1
-    addi    t4, t4, 127     # new_exp
-    
-else:
-    srli    t4, t1, 1
-    addi    t4, t4, 127     # new_exp
+    andi    t6, t1, 1
+    sll     t2, t2, t6 # mant <<= mask
+    sub     t4, t1, t6 # new_exp = e - mask
+    srai    t4, t4, 1  # new_exp >>= 1 new_exp is int32_t so need use arithmetic shift
+    addi    t4, t4, 127 # new_exp += BF16_EXP_BIAS
 
-
-    
+binary_search_init:
     li      a1, 90          # low
-    li      a2, 256         # high
+    li      a2, 255         # high
     li      a3, 128         # result
     
 binary_search_loop:
@@ -107,11 +100,11 @@ mul_loop_init:
      
 mul_loop:
     bge     s0, s1, mul_loop_end
-    srl     s2, a4, s0      # mask
-    andi    s2, s2, 1 
-    sub     s2, x0, s2  
+    srl     t6, a4, s0      # mask
+    andi    t6, t6, 1 
+    sub     t6, x0, t6  
     sll     s3, a4, s0     
-    and     s3, s3, s2  
+    and     s3, s3, t6  
     add     a5, a5, s3  
     addi    s0, s0, 1       # i++
     j       mul_loop
@@ -128,28 +121,14 @@ set_result:
     j       binary_search_loop
     
 binary_loop_end:
-    li      s4, 256
-    li      s5, 128
-    bge     a3, s4, adjust_lower
-    blt     a3, s5, adjust_upper
+    li      s6, 0xFF
+    andi    t2, a3, 0x7F
+    blt     t4, s6, chk_new_exp
+    jal     x0, inf
     
-adjust_lower:
-    srli    a3, a3, 1
-    addi    t4, t4, 1
-    j       adjust_done
-    
-adjust_upper:
-    ble     t4, t5, adjust_done
-    slli    a3, a3, 1
-    addi    t4, t4, -1
-    j       adjust_upper
-    
-adjust_done:
-    andi    t2, a3, 0x7F  # new_mant
-    
-    li      t5, 0xFF
-    bge     t4, t5, inf
-    ble     t4, x0, zero
+chk_new_exp:
+    bgt     t4, x0, return
+    jal     x0, zero
     
 return:
     andi    t4, t4, 0xFF
