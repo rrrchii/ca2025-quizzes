@@ -10,17 +10,45 @@ msg_fail:
 main:
     li      s10, 0                 # fail_count = 0
     
-     # ------------- case1 ---------------
+    # ------------- case1 ---------------
     # TC1: sqrt(4.0) = 2.0
     # a = 0x4080 (4.0), exp = 0x4000 (2.0)
-    li      a0, 0x00004000           # a = 4.0 (bf16)
+    li      a0, 0x4080            # a = 4.0 (bf16)
     jal     ra, bf16_sqrt
-    li      t0, 0x00003FB5           # expected = 2.0 (bf16)
+    li      t0, 0x4000            # expected = 2.0 (bf16)
     bne     a0, t0, 1f            # if result != expected -> fail++
     j       2f
 1:
     addi    s10, s10, 1
 2:
+
+    # ------------- case2 (edge) --------
+    # TC2 (edge): sqrt(-1.0) = NaN
+    # a = 0xBF80 (-1.0)
+    li      a0, 0xBF80            # -1.0 (bf16)
+    jal     ra, bf16_sqrt
+    li      t1, 0x7F80            # mask exp bits
+    and     t2, a0, t1            # 取 exponent
+    bne     t2, t1, 3f            # exp != 0xFF -> fail
+    andi    t3, a0, 0x7F          # 取 mantissa
+    beqz    t3, 3f                # mant == 0 -> 不是 NaN -> fail
+    j       4f
+3:
+    addi    s10, s10, 1
+4:
+
+    # ------------- case3 ---------------
+    # TC3: sqrt(+Inf) = +Inf
+    # a = 0x7F80 (+Inf), exp = 0x7F80 (+Inf)
+    li      a0, 0x7F80            # +Inf
+    jal     ra, bf16_sqrt
+    li      t0, 0x7F80            # expected = +Inf (bf16)
+    bne     a0, t0, 5f
+    j       6f
+5:
+    addi    s10, s10, 1
+6:
+
 
     # ----------------------------
     # print result
